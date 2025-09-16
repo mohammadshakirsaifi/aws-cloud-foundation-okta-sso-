@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Multi-role SAML SSO Integration with Okta
+
+Resources:
+
+  OktaSAMLProvider:
+    Type: AWS::IAM::SAMLProvider
+    Properties:
+      Name: OktaSAML
+      SamlMetadataDocument: |
+        INSERT_OKTA_METADATA_XML_HERE
+
+  OktaAdminRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: OktaAdmin
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !GetAtt OktaSAMLProvider.Arn
+            Action: sts:AssumeRoleWithSAML
+            Condition:
+              StringEquals:
+                SAML:aud: https://signin.aws.amazon.com/saml
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+  OktaDevRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: OktaDev
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !GetAtt OktaSAMLProvider.Arn
+            Action: sts:AssumeRoleWithSAML
+            Condition:
+              StringEquals:
+                SAML:aud: https://signin.aws.amazon.com/saml
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/PowerUserAccess
+
+  OktaReadOnlyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: OktaReadOnly
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !GetAtt OktaSAMLProvider.Arn
+            Action: sts:AssumeRoleWithSAML
+            Condition:
+              StringEquals:
+                SAML:aud: https://signin.aws.amazon.com/saml
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+
+Outputs:
+  SAMLProviderArn:
+    Description: Okta SAML Provider ARN
+    Value: !GetAtt OktaSAMLProvider.Arn
+
+  AdminRoleArn:
+    Description: Administrator Role ARN
+    Value: !GetAtt OktaAdminRole.Arn
+
+  DevRoleArn:
+    Description: Developer Role ARN
+    Value: !GetAtt OktaDevRole.Arn
+
+  ReadOnlyRoleArn:
+    Description: ReadOnly Role ARN
+    Value: !GetAtt OktaReadOnlyRole.Arn
